@@ -1,0 +1,66 @@
+// Hand-written optimiser showcase (kernels/redundant.cu): constants, copies, duplicate loads,
+// strength reduction, a never-taken branch, and dead code.
+.version 7.8
+.target sm_75
+.address_size 64
+
+.visible .entry redundant(
+	.param .u64 redundant_param_0,
+	.param .u64 redundant_param_1,
+	.param .u32 redundant_param_2
+)
+{
+	.reg .pred 	%p<4>;
+	.reg .b32 	%r<40>;
+	.reg .b64 	%rd<16>;
+
+	ld.param.u64 	%rd1, [redundant_param_0];
+	ld.param.u64 	%rd2, [redundant_param_1];
+	ld.param.u32 	%r1, [redundant_param_2];
+	ld.param.u64 	%rd3, [redundant_param_0];
+	cvta.to.global.u64 	%rd4, %rd1;
+	cvta.to.global.u64 	%rd5, %rd2;
+	cvta.to.global.u64 	%rd6, %rd3;
+	mov.u32 	%r2, %ntid.x;
+	mov.u32 	%r3, %ctaid.x;
+	mov.u32 	%r4, %tid.x;
+	mad.lo.s32 	%r5, %r3, %r2, %r4;
+	mov.u32 	%r6, 4;
+	mov.u32 	%r7, 8;
+	add.s32 	%r8, %r6, %r7;
+	mul.lo.s32 	%r30, %r5, 37;
+	add.s32 	%r31, %r30, %r8;
+	mov.u32 	%r12, %r5;
+	mov.u32 	%r13, 7;
+	setp.lt.s32 	%p2, %r13, 5;
+	@%p2 bra 	$L__BB0_4;
+	setp.ge.s32 	%p1, %r5, %r1;
+	@%p1 bra 	$L__BB0_3;
+
+	mul.wide.s32 	%rd7, %r12, 4;
+	add.s64 	%rd8, %rd5, %rd7;
+	ld.global.u32 	%r14, [%rd8];
+	mul.lo.u32 	%r15, %r14, 8;
+	div.u32 	%r16, %r14, 16;
+	rem.u32 	%r17, %r14, 16;
+	add.u32 	%r18, %r16, %r17;
+	add.u32 	%r19, %r15, %r18;
+	add.u32 	%r20, %r19, %r8;
+	mul.lo.s32 	%r21, %r12, 1;
+	add.s32 	%r22, %r21, 0;
+	add.u32 	%r23, %r20, %r22;
+	mul.wide.s32 	%rd9, %r5, 4;
+	add.s64 	%rd10, %rd4, %rd9;
+	st.global.u32 	[%rd10], %r23;
+
+$L__BB0_3:
+	ret;
+
+$L__BB0_4:
+	mov.u32 	%r35, 99;
+	mul.wide.s32 	%rd11, %r5, 4;
+	add.s64 	%rd12, %rd6, %rd11;
+	st.global.u32 	[%rd12], %r35;
+	ret;
+
+}

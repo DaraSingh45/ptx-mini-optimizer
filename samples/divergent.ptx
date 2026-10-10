@@ -1,0 +1,45 @@
+// Hand-written: one thread-divergent branch (tid parity), one uniform branch (kernel parameter)
+.version 7.8
+.target sm_75
+.address_size 64
+
+.visible .entry divergent(
+	.param .u64 divergent_param_0,
+	.param .u32 divergent_param_1
+)
+{
+	.reg .pred 	%p<4>;
+	.reg .b32 	%r<10>;
+	.reg .b64 	%rd<6>;
+
+	ld.param.u64 	%rd1, [divergent_param_0];
+	ld.param.u32 	%r1, [divergent_param_1];
+	cvta.to.global.u64 	%rd2, %rd1;
+	mov.u32 	%r2, %tid.x;
+	and.b32 	%r3, %r2, 1;
+	setp.eq.s32 	%p1, %r3, 0;
+	@%p1 bra 	$L__BB0_2;
+
+	mul.lo.s32 	%r4, %r2, 3;
+	bra.uni 	$L__BB0_3;
+
+$L__BB0_2:
+	shl.b32 	%r4, %r2, 2;
+
+$L__BB0_3:
+	setp.gt.s32 	%p2, %r1, 40;
+	@%p2 bra 	$L__BB0_5;
+
+	add.s32 	%r6, %r4, 100;
+	bra.uni 	$L__BB0_6;
+
+$L__BB0_5:
+	add.s32 	%r6, %r4, 200;
+
+$L__BB0_6:
+	mul.wide.s32 	%rd3, %r2, 4;
+	add.s64 	%rd4, %rd2, %rd3;
+	st.global.u32 	[%rd4], %r6;
+	ret;
+
+}

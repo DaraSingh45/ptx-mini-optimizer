@@ -1,0 +1,3 @@
+# keep LF line endings everywhere so scripts work in WSL/Linux even if edited on Windows
+* text=auto eol=lf
+*.png binary

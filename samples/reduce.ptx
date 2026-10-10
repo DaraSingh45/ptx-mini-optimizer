@@ -1,0 +1,63 @@
+// Hand-written: shared-memory tree reduction with bar.sync (analysis demo; interpreter skips barriers)
+.version 7.8
+.target sm_75
+.address_size 64
+
+.visible .entry reduce(
+	.param .u64 reduce_param_0,
+	.param .u64 reduce_param_1
+)
+{
+	.reg .pred 	%p<4>;
+	.reg .f32 	%f<6>;
+	.reg .b32 	%r<8>;
+	.reg .b64 	%rd<14>;
+	.shared .align 4 .b8 sdata[1024];
+
+	ld.param.u64 	%rd1, [reduce_param_0];
+	ld.param.u64 	%rd2, [reduce_param_1];
+	cvta.to.global.u64 	%rd3, %rd2;
+	cvta.to.global.u64 	%rd4, %rd1;
+	mov.u32 	%r1, %tid.x;
+	mov.u32 	%r2, %ctaid.x;
+	mov.u32 	%r3, %ntid.x;
+	mad.lo.s32 	%r4, %r2, %r3, %r1;
+	mul.wide.s32 	%rd5, %r4, 4;
+	add.s64 	%rd6, %rd4, %rd5;
+	ld.global.f32 	%f1, [%rd6];
+	mov.u64 	%rd7, sdata;
+	mul.wide.u32 	%rd8, %r1, 4;
+	add.s64 	%rd9, %rd7, %rd8;
+	st.shared.f32 	[%rd9], %f1;
+	bar.sync 	0;
+	shr.u32 	%r5, %r3, 1;
+
+$L__BB0_1:
+	setp.ge.u32 	%p1, %r1, %r5;
+	@%p1 bra 	$L__BB0_3;
+
+	mul.wide.u32 	%rd10, %r5, 4;
+	add.s64 	%rd11, %rd9, %rd10;
+	ld.shared.f32 	%f2, [%rd11];
+	ld.shared.f32 	%f3, [%rd9];
+	add.f32 	%f4, %f3, %f2;
+	st.shared.f32 	[%rd9], %f4;
+
+$L__BB0_3:
+	bar.sync 	0;
+	shr.u32 	%r5, %r5, 1;
+	setp.ne.s32 	%p2, %r5, 0;
+	@%p2 bra 	$L__BB0_1;
+
+	setp.ne.s32 	%p3, %r1, 0;
+	@%p3 bra 	$L__BB0_6;
+
+	ld.shared.f32 	%f5, [sdata];
+	mul.wide.u32 	%rd12, %r2, 4;
+	add.s64 	%rd13, %rd3, %rd12;
+	st.global.f32 	[%rd13], %f5;
+
+$L__BB0_6:
+	ret;
+
+}

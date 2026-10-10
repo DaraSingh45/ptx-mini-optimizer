@@ -1,0 +1,7 @@
+build/
+out/
+generated/
+*.o
+*.dot
+.vscode/
+.idea/
